@@ -1,0 +1,376 @@
+$screen-xs: 767px;
+
+$manrope: 'Manrope';
+
+$primary01: #881B3B;
+$primary02: #DB4E77;
+
+$text-primary01: #C2CDE7;
+$text-primary02: #8A96B1;
+$border-primary01: #F3F3F3;
+
+$white: #ffffff;
+$light-white: rgba(255, 255, 255, 0.9);
+$black: #000000;
+$yellow:yellow;
+
+$cyan : #27B1FF;
+
+$bg-color : #111323;
+
+$light-black:#101010;
+
+$layer-black :#04171a;
+$yellow :#fec63f;
+
+$box-shadow01: 0 1px 119px rgba(0, 0, 0, 0.15);
+$btn-shadow: 0 2.01389px 2.01389px rgba(0, 0, 0, 0.25);
+$transition: all 0.2s ease-in-out;
+
+body {
+  font-family: $manrope !important;
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  line-height: 24px !important;
+  //background: #080811 !important;
+  color: $white !important;
+  background-image: url('../images/body-bg-img.png');
+  background-size: cover;
+  background-position: top;
+}
+
+.container {
+  max-width: 1290px !important;
+}
+
+//      ****************************  Text Element  ****************************
+
+h1 {
+  font-weight: 700 !important;
+  font-size: 64px !important;
+  line-height: 74px !important;
+  color: $white !important;
+  font-family: $manrope !important;
+  background-image: linear-gradient(to right, #EBF1FF 30%, #B3C0DE);
+  background-image: -webkit-linear-gradient(to right, #EBF1FF  30%, #B3C0DE);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  @media screen and (max-width: 1199px) and (min-width: 768px) {
+    font-size: 40px !important;
+    line-height: 50px !important;
+  }
+  @media screen and (max-width: 991px) {
+    font-size: 36px !important;
+    line-height: 46px !important;
+  }
+}
+
+h2, .h2 {
+  font-weight: 700 !important;
+  font-size: 46px !important;
+  line-height: 54px !important;
+  color: $white !important;
+  font-family: $manrope;
+  background-image: linear-gradient(to right, #EBF1FF  40%, #B3C0DE) !important;
+  background-image: -webkit-linear-gradient(to right, #EBF1FF  40%, #B3C0DE) !important;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  @media screen and (max-width: 1199px) and (min-width: 992px) {
+    font-size: 30px !important;
+    line-height: 40px !important;
+  }
+  @media screen and (max-width: 991px) {
+    font-size: 24px  !important;
+    line-height: 34px !important;
+  }
+}
+
+h3, .h3 {
+  font-family: $manrope;
+  font-weight: 600;
+  font-size: 25px;
+  line-height: 35px;
+  color: $white;
+  background-image: linear-gradient(135deg, #EBF1FF  60%, #B3C0DE 40%) !important;
+  background-image: -webkit-linear-gradient(to right, #EBF1FF  60%, #B3C0DE 40%) !important;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  @media screen and (max-width: 1199px) and (min-width: 768px) {
+    font-size: 22px;
+    line-height: 30px;
+  }
+  @media screen and (max-width: 767px) {
+    font-size: 20px;
+    line-height: 30px;
+  }
+}
+
+.h3{
+  font-size: 30px;
+  line-height: 40px;
+}
+
+
+p, .p {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  font-family: $manrope;
+  color: $text-primary01;
+  @media screen and (max-width: 767px) {
+    font-size:14px !important;
+    line-height: 24px !important;
+  }
+  &.large{
+    font-size: 18px;
+    @media screen and (max-width: 991px) {
+      font-size: 16px !important;
+      line-height: 26px !important;
+    }
+  }
+  &.medium{
+    font-size: 15px;
+  }
+  &.cyan{
+    color: $cyan !important;
+  }
+  &.white{
+    color: $white;
+  }
+}
+strong{
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  &.white{
+    color: $white;
+  }
+  @media screen and (max-width: 991px) {
+    font-size: 16px;
+  }
+}
+span {
+  font-family: $manrope;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 170%;
+  color: $text-primary02;
+  display: inline-block;
+}
+
+a, .a {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: $text-primary01 !important;
+  text-decoration: none !important;
+  @media screen and (max-width: 767px) {
+    font-size: 16px;
+  }
+  &:hover {
+    color: $white !important;
+    text-decoration: none;
+  }
+}
+
+strong {
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 28px;
+  font-family: $manrope;
+  color: $white;
+  @media screen and (max-width: 991px) {
+    font-size: 16px;
+    line-height: 26px;
+  }
+}
+
+ul {
+  padding-left: 0 !important;
+  margin-bottom: 0 !important;
+  li {
+    list-style: none;
+    display: inline-block;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 24px;
+    color: $white;
+  }
+}
+
+
+//      ****************************  Button Element  ****************************
+
+.btn-style{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 19px;
+  min-width: auto;
+  height: 56px;
+  padding: 14px 51px 14px;
+  color: $white;
+  cursor: pointer;
+  border-radius: 4px;
+  text-decoration: none;
+  font-family: $manrope;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  background: linear-gradient(to right , rgba(38, 177, 255 , 1), rgba(22, 91, 254, 1));
+  border: 1px solid $primary02;
+  transition: all .3s ease-in-out;
+  z-index: 2;
+  img, svg {
+    height: 12px;
+    object-fit: contain;
+    position: absolute;
+    right: 24px;
+    transition: all .3s ease-in-out;
+    @media screen and (max-width: 767px) {
+      right: 11px;
+    }
+  }
+  @media screen and (max-width: 767px) {
+    padding: 8px 30px 8px;
+    font-size: 14px;
+    gap: 8px;
+    height: auto;
+  }
+  &:hover{
+    transition: all .3s ease-in-out;
+    background: transparent;
+    color: $primary01;
+    img{
+      right: 18px;
+      @media screen and (max-width: 767px) {
+        right: 11px;
+      }
+    }
+  }
+  &.dark{
+    background: $bg-color;
+    border: 2px solid #26293C;
+    color: $text-primary01;
+  }
+  &.small{
+    padding: 14px 19px 14px;
+    height: 38px;
+    font-size: 13px;
+    line-height: 24px;
+  }
+  &.transparent{
+    background: transparent;
+    border-color: $primary01;
+    color: $primary01;
+  }
+  &.colored-border{
+    color: $primary01;
+    text-transform: capitalize;
+    border-radius: 4px;
+    background: 0 0;
+    //border-image-slice: 1!important;
+    //border-image: linear-gradient(135deg,#0088CC 0%,#e36159 80%);
+    background: linear-gradient(to right, rgba(38, 177, 255 , 1), rgba(22, 91, 254, 1)) padding-box, linear-gradient(to right, rgba(38, 177, 255 , 1), rgba(22, 91, 254, 1)) border-box;
+    border: 2px solid transparent;
+  }
+  &.text{
+    min-width: 90px;
+    height: 32px;
+    padding: 7px 5px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: $primary01;
+  }
+  &.round{
+    border-radius: 50px;
+  }
+  &.shadow{
+    box-shadow: rgba(99, 99, 99, 0.2) 0 2px 8px 0;
+  }
+  &.icon{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  &.gradient{
+    background: rgb(219,10,10);
+    background: linear-gradient(0deg, rgba(219,10,10,1) 0%, rgba(253,219,45,1) 100%);
+    border: none;
+    color: white;
+  }
+  &.icon-circle{
+    border-radius: 50%;
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    i{
+      font-size: 22px;
+    }
+  }
+  &.pink{
+    background: $primary02;
+    color: $white;
+    border-color: $primary02;
+    &:hover{
+      background: transparent;
+      color: $primary02;
+      border-color: $primary02;
+    }
+  }
+}
+
+
+
+//      ****************************  Global Element  ****************************
+
+
+.form {
+  .form-group {
+    margin-bottom: 24px;
+  }
+  label{
+    color: $black;
+    font-size: 16px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 10px;
+    @media screen and (max-width: $screen-xs) {
+      margin-bottom: 5px;
+    }
+  }
+  .form-control {
+    border-radius: 8px;
+    line-height: 34px;
+    font-size: 24px;
+    font-weight: 500;
+    width: 100%;
+    height: 64px;
+    padding: 8px 17px 8px;
+    border: none;
+    color: $text-primary01;
+    position: relative;
+    outline: none;
+    appearance: none;
+    background-color: $white;
+    @media screen and (max-width: 991px) {
+      height: 55px;
+    }
+    &::placeholder {
+      color: $text-primary01;
+    }
+    &:focus{
+      box-shadow: none;
+    }
+  }
+
+  input[type="checkbox"] {
+    border: 1px solid $border-primary01;
+    border-radius: 4px;
+  }
+}
+
