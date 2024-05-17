@@ -37,15 +37,15 @@ export default function Header(){
                         <div className={`header-menu ${mobileMenu ? 'active' : ''}`}>
                             <a href="#" onClick={closeMenu}>     <Image src={require('../assets/images/icons/close-icon.png')} alt='close-icon' className='close-icon' /></a>
                             <ul className="menu">
-                                <li><a href="#">Playground</a></li>
-                                <li><a href="#">Pricing</a></li>
+                                {/* <li><a href="#">Playground</a></li> */}
+                                <li><a href="#pricing">Pricing</a></li>
                                 <li><a href="#">Blog</a></li>
                             </ul>
                         </div>
                     </div>
                     <div className="col-md-3 align-self-center">
                         <div className="right-btn">
-                            <a href="#" className="btn-style dark">Get Started</a>
+                            <a href="https://github.com/BradPerbs/cors.lol.git" className="btn-style dark">GitHub</a>
                         </div>
                     </div>
                 </div>

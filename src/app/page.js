@@ -17,20 +17,20 @@ export default function Home() {
                               <h1>Super easy, free to use CORS proxy</h1>
                               <p className="large">Stop fighting with CORS errors, simply proxy your requests through cors.lol, an easy to use, open-source CORS proxy.</p>
                               <div className="banner-btns">
-                                  <a href="#" className="btn-style colored-border">Get Started <Image src={require('./assets/images/icons/right-arrow-icon.png')} alt='right-arrow-icon' className='right-arrow-icon' /> </a>
+                                  <a href="#getStarted" className="btn-style colored-border">Get Started <Image src={require('./assets/images/icons/right-arrow-icon.png')} alt='right-arrow-icon' className='right-arrow-icon' /> </a>
                                   <a href="#"><Image src={require('./assets/images/icons/github-icon.png')} alt='github-icon' className='github-icon' /></a>
                               </div>
                           </div>
                       </div>
                       <div className="col-md-6 align-self-center">
                           <div className="banner-img-wrapper">
-                              <Image src={require('./assets/images/banner-img.png')} alt='banner-img' className='banner-img'/>
+                              <Image src={require('./assets/images/headerimg.svg')} alt='banner-img' className='banner-img'/>
                           </div>
                       </div>
                   </div>
               </div>
           </div>
-          <div className="how-do-use-it">
+          <div className="how-do-use-it" id="getStarted" name="getStarted">
               <div className="container">
                   <div className="section-header">
                       <p className="cyan medium">Get Started</p>
@@ -49,7 +49,7 @@ export default function Home() {
                   </form>
               </div>
           </div>
-          <div className="flexible-plan">
+          <div className="flexible-plan" id="pricing" name="pricing">
               <div className="container">
                   <div className="section-header">
                       <p className="cyan">Flexible Plans</p>
@@ -215,39 +215,21 @@ export default function Home() {
                       <div className="col-lg-8 col-md-7">
                           <Accordion defaultActiveKey="0">
                               <Accordion.Item eventKey="0">
-                                  <Accordion.Header>What is SaaS, and how does it work?</Accordion.Header>
+                                  <Accordion.Header>What is a CORS proxy?</Accordion.Header>
                                   <Accordion.Body>
-                                      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                                          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-                                          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-                                          aliquip ex ea commodo consequat. Duis aute irure dolor in
-                                          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-                                          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-                                          culpa qui officia deserunt mollit anim id est laborum.</p>
+                                      <p>A CORS proxy service allows web developers to bypass the same-origin policy enforced by web browsers. This service acts as an intermediary between your web application and the target server, enabling your application to make cross-origin requests without encountering CORS (Cross-Origin Resource Sharing) errors.</p>
                                   </Accordion.Body>
                               </Accordion.Item>
                               <Accordion.Item eventKey="1">
-                                  <Accordion.Header>What benefits does SaaS offer for my business?</Accordion.Header>
+                                  <Accordion.Header>Is this CORS proxy service secure to use?</Accordion.Header>
                                   <Accordion.Body>
-                                      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                                          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-                                          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-                                          aliquip ex ea commodo consequat. Duis aute irure dolor in
-                                          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-                                          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-                                          culpa qui officia deserunt mollit anim id est laborum.</p>
+                                      <p>While our CORS proxy service is designed to be secure, it is important to understand that using any proxy introduces potential security risks. We recommend using the proxy only for development purposes and not for sensitive or production data. Always review the code and understand the security implications before deploying it in your environment.</p>
                                   </Accordion.Body>
                               </Accordion.Item>
                               <Accordion.Item eventKey="2">
-                                  <Accordion.Header>Is my data secure and protected with your SaaS platform?</Accordion.Header>
+                                  <Accordion.Header>How can I set up and use this CORS proxy service?</Accordion.Header>
                                   <Accordion.Body>
-                                      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                                          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad
-                                          minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-                                          aliquip ex ea commodo consequat. Duis aute irure dolor in
-                                          reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-                                          pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-                                          culpa qui officia deserunt mollit anim id est laborum.</p>
+                                      <p>Using our CORS proxy service is simple. You don't need to install anything. Just prepend your target API URL with https://api.cors.lol/. For example, if you want to access https://example.com/api, you would use https://api.cors.lol/https://example.com/api. This way, all your cross-origin requests will be routed through our proxy, avoiding CORS restrictions.</p>
                                   </Accordion.Body>
                               </Accordion.Item>
                               <Accordion.Item eventKey="3">
