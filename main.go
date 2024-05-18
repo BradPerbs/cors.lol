@@ -87,8 +87,8 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/proxy/{url:.*}", proxyHandler).Methods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 
-	log.Println("Proxy server running on :8080")
-	if err := http.ListenAndServe(":8080", r); err != nil {
+	log.Println("Proxy server running on :32000")
+	if err := http.ListenAndServe(":32000", r); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
