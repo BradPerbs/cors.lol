@@ -47,13 +47,13 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := r.URL.String()[1:] // Remove the leading slash
-	if !strings.HasPrefix(url, "http") {
+	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		url = "http://" + url
 	}
 
 	req, err := http.NewRequest(r.Method, url, r.Body)
 	if err != nil {
-		http.Error(w, "Error creating request", http.StatusInternalServerError)
+		http.Error(w, "Error creating request: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -62,7 +62,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		http.Error(w, "Error proxying request", http.StatusBadGateway)
+		http.Error(w, "Error proxying request: "+err.Error(), http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -78,7 +78,9 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 	w.WriteHeader(resp.StatusCode)
-	io.CopyN(w, resp.Body, requestLimit)
+	if _, err := io.CopyN(w, resp.Body, requestLimit); err != nil && err != io.EOF {
+		http.Error(w, "Error reading response body: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func main() {
