@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -46,12 +47,18 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := r.URL.String()[1:] // Remove the leading slash
-	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-		url = "http://" + url
+	targetURL := r.URL.String()[1:] // Remove the leading slash
+	if strings.HasPrefix(targetURL, "/") {
+		targetURL = targetURL[1:]
 	}
 
-	req, err := http.NewRequest(r.Method, url, r.Body)
+	parsedURL, err := url.Parse(targetURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+
+	req, err := http.NewRequest(r.Method, parsedURL.String(), r.Body)
 	if err != nil {
 		http.Error(w, "Error creating request: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -91,4 +98,3 @@ func main() {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
- 
