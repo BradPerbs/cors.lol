@@ -12,16 +12,6 @@ const (
 )
 
 func main() {
-    fmt.Println("CORS Proxy")
-    fmt.Println("")
-    fmt.Println("In your /etc/hosts file add this line:")
-    fmt.Println("")
-    fmt.Println("127.0.0.1\tproxy.cors")
-    fmt.Println("")
-    fmt.Println("And then run a request against:")
-    fmt.Println("")
-    fmt.Printf("http://proxy.cors:%d/http://example.com/user/joeblow.atom\n", tcpPort)
-    fmt.Print("\n\n\n\n")
 
     proxy := goproxy.NewProxyHttpServer()
     proxy.Verbose = true
