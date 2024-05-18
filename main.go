@@ -10,7 +10,7 @@ import (
 
 var (
     // Limit each IP to 100 requests per 30 minutes
-    rateLimit = 10
+    rateLimit = 2
     rateLimitDuration = 30 * time.Minute
     requestCounts = make(map[string]int)
     countsLock = sync.Mutex{}
