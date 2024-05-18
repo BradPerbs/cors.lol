@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
 )
 
@@ -47,10 +46,9 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	url := strings.TrimPrefix(r.URL.Path, "/proxy/")
-	if url == "" {
-		http.Error(w, "Missing URL to proxy", http.StatusBadRequest)
-		return
+	url := r.URL.String()[1:] // Remove the leading slash
+	if !strings.HasPrefix(url, "http") {
+		url = "http://" + url
 	}
 
 	req, err := http.NewRequest(r.Method, url, r.Body)
@@ -84,11 +82,10 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/{url:.*}", proxyHandler).Methods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+	http.HandleFunc("/", proxyHandler)
 
-	log.Println("Proxy server running on :32000")
-	if err := http.ListenAndServe(":32000", r); err != nil {
+	log.Println("Proxy server running on :3001")
+	if err := http.ListenAndServe(":3001", nil); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
