@@ -85,7 +85,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/proxy/{url:.*}", proxyHandler).Methods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+	r.HandleFunc("/{url:.*}", proxyHandler).Methods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 
 	log.Println("Proxy server running on :32000")
 	if err := http.ListenAndServe(":32000", r); err != nil {
