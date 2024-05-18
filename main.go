@@ -1,91 +1,47 @@
 package main
 
 import (
-	"io"
-	"log"
-	"net/http"
-	"strings"
-	"time"
+	"github.com/reiver/go-cors"
 
-	"github.com/gorilla/mux"
-	"github.com/juju/ratelimit"
+	"fmt"
+	"net/http"
+	"os"
 )
 
 const (
-	maxRequestSize = 10 << 20 // 10 MB
-	rateLimit      = 100      // requests per minute
+	tcpport = 3001
 )
 
-var bucket *ratelimit.Bucket
-
-func init() {
-	// Initialize the rate limiter
-	bucket = ratelimit.NewBucket(time.Minute/time.Duration(rateLimit), int64(rateLimit))
-}
-
 func main() {
-	r := mux.NewRouter()
-	r.HandleFunc("/{url:.*}", proxyHandler)
-	http.Handle("/", r)
-	log.Println("Proxy server is running on port 3001")
-	http.ListenAndServe(":3001", nil)
+
+	fmt.Println("CORS Proxy")
+	fmt.Println("")
+	fmt.Println("In your /etc/hosts file add this line:")
+	fmt.Println("")
+	fmt.Println("127.0.0.1\tproxy.cors")
+	fmt.Println("")
+	fmt.Println("And then run a request against:")
+	fmt.Println("")
+	fmt.Printf("http://proxy.cors:%d/http://example.com/user/joeblow.atom\n", tcpport)
+	fmt.Print("\n\n\n\n")
+
+	var handler http.Handler
+	{
+		proxy := cors.ProxyHandler{
+			LogWriter:os.Stdout,
+		}
+
+		handler = &proxy
+	}
+
+
+	{
+		var addr string = fmt.Sprintf(":%d", tcpport)
+
+		err := http.ListenAndServe(addr, handler)
+		if nil != err {
+			fmt.Fprintln(os.Stderr, "ERROR:", err)
+			return
+		}
+	}
 }
-
-func proxyHandler(w http.ResponseWriter, r *http.Request) {
-	// Rate limiting
-	if bucket.TakeAvailable(1) == 0 {
-		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-		return
-	}
-
-	// Check request size
-	r.Body = http.MaxBytesReader(w, r.Body, maxRequestSize)
-	defer r.Body.Close()
-
-	// Get the target URL from the request
-	vars := mux.Vars(r)
-	targetURL := vars["url"]
-	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
-		targetURL = "http://" + targetURL
-	}
-
-	log.Printf("Proxying request to: %s", targetURL)
-
-	// Create the request to the target URL
-	req, err := http.NewRequest(r.Method, targetURL, r.Body)
-	if err != nil {
-		log.Printf("Error creating request: %v", err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
-		return
-	}
-
-	// Copy the headers
-	for k, v := range r.Header {
-		req.Header[k] = v
-	}
-
-	// Perform the request
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Error performing request: %v", err)
-		http.Error(w, "Bad Gateway", http.StatusBadGateway)
-		return
-	}
-	defer resp.Body.Close()
-
-	// Copy the response headers and status code
-	for k, v := range resp.Header {
-		w.Header()[k] = v
-	}
-	w.WriteHeader(resp.StatusCode)
-
-	// Add CORS headers
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	// Copy the response body
-	io.Copy(w, resp.Body)
-}
-
