@@ -47,33 +47,23 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract the target URL from the request path
 	targetURL := r.URL.String()[1:] // Remove the leading slash
 
-	// Ensure the target URL has the correct scheme (http or https)
-	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
-		http.Error(w, "Invalid URL scheme", http.StatusBadRequest)
-		return
-	}
-
-	// Parse the target URL to ensure it is valid
+	// Ensure the target URL is valid
 	parsedURL, err := url.Parse(targetURL)
-	if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" {
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
 		http.Error(w, "Invalid URL", http.StatusBadRequest)
 		return
 	}
 
-	// Create a new request based on the original request
 	req, err := http.NewRequest(r.Method, parsedURL.String(), r.Body)
 	if err != nil {
 		http.Error(w, "Error creating request: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Copy original headers to the new request
 	req.Header = r.Header
 
-	// Perform the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -82,19 +72,16 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Copy response headers to the original response
 	for key, value := range resp.Header {
 		for _, v := range value {
 			w.Header().Add(key, v)
 		}
 	}
 
-	// Add CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-	// Write response status code and body
 	w.WriteHeader(resp.StatusCode)
 	if _, err := io.CopyN(w, resp.Body, requestLimit); err != nil && err != io.EOF {
 		http.Error(w, "Error reading response body: "+err.Error(), http.StatusInternalServerError)
