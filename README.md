@@ -18,9 +18,9 @@ If you want to proxy a request to `https://example.com/api/data`, you would use 
 
 
 ````
-```
-[Look! You can see my backticks.](https://api.cors.lol/url=https://example.com/api/data)
-```
+
+https://api.cors.lol/url=https://example.com/api/data
+
 ````
 
 ## Features
