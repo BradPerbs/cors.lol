@@ -6,7 +6,7 @@
 
 **cors.lol** is a free-to-use CORS proxy that adds CORS headers to your requests. This service allows you to bypass the Same-Origin Policy and make requests to external APIs without facing CORS issues.
 
-[![Visit cors.lol](https://img.shields.io/badge/Visit-cors.lol-brightgreen)](https://api.cors.lol)
+[![Visit cors.lol](https://img.shields.io/badge/Visit-cors.lol-brightgreen)](https://cors.lol)
 
 ## How to Use
 
