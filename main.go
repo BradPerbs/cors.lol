@@ -26,7 +26,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/{url:.*}", proxyHandler)
 	http.Handle("/", r)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":3001", nil)
 }
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
