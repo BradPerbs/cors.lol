@@ -1,6 +1,7 @@
 package main
 
 import (
+    "io"
     "log"
     "net/http"
     "sync"
@@ -9,7 +10,7 @@ import (
 
 var (
     // Limit each IP to 100 requests per 30 minutes
-    rateLimit = 100
+    rateLimit = 10
     rateLimitDuration = 30 * time.Minute
     requestCounts = make(map[string]int)
     lastAccess = make(map[string]time.Time)
