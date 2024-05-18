@@ -2,64 +2,93 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
+	"strings"
 	"time"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
 )
 
-// Define rate limiter with 1 request per second and a burst size of 5
-var limiter = rate.NewLimiter(1, 5)
+const (
+	requestLimit = 10 * 1024 * 1024 // 10 MB
+	rateLimit    = 10               // requests per minute
+)
+
+// RateLimiter is a wrapper for rate limiting per IP
+type RateLimiter struct {
+	ips map[string]*rate.Limiter
+	r   *rate.Limiter
+}
+
+func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
+	return &RateLimiter{
+		ips: make(map[string]*rate.Limiter),
+		r:   rate.NewLimiter(r, b),
+	}
+}
+
+func (rl *RateLimiter) getLimiter(ip string) *rate.Limiter {
+	if lim, exists := rl.ips[ip]; exists {
+		return lim
+	}
+	lim := rate.NewLimiter(rl.r.Limit(), rl.r.Burst())
+	rl.ips[ip] = lim
+	return lim
+}
+
+var limiter = NewRateLimiter(rate.Every(time.Minute/rateLimit), rateLimit)
+
+func proxyHandler(w http.ResponseWriter, r *http.Request) {
+	ip := r.RemoteAddr
+	if ipLimiter := limiter.getLimiter(ip); !ipLimiter.Allow() {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+
+	url := strings.TrimPrefix(r.URL.Path, "/proxy/")
+	if url == "" {
+		http.Error(w, "Missing URL to proxy", http.StatusBadRequest)
+		return
+	}
+
+	req, err := http.NewRequest(r.Method, url, r.Body)
+	if err != nil {
+		http.Error(w, "Error creating request", http.StatusInternalServerError)
+		return
+	}
+
+	req.Header = r.Header
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Error proxying request", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	for key, value := range resp.Header {
+		for _, v := range value {
+			w.Header().Add(key, v)
+		}
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+	w.WriteHeader(resp.StatusCode)
+	io.CopyN(w, resp.Body, requestLimit)
+}
 
 func main() {
-	// Create a new mux router
-	router := mux.NewRouter()
+	r := mux.NewRouter()
+	r.HandleFunc("/proxy/{url:.*}", proxyHandler).Methods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 
-	// Define the proxy handler
-	router.HandleFunc("/{url:.*}", func(w http.ResponseWriter, r *http.Request) {
-		// Apply the rate limiter
-		if !limiter.Allow() {
-			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
-			return
-		}
-
-		// Limit request size to 10MB
-		r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024)
-
-		// Parse the target URL
-		targetURL, err := url.Parse("https://example.com") // Change this to your target URL
-		if err != nil {
-			http.Error(w, "Invalid target URL", http.StatusInternalServerError)
-			return
-		}
-
-		// Create a reverse proxy
-		proxy := httputil.NewSingleHostReverseProxy(targetURL)
-
-		// Set the CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
- 
-		
-
-		// Handle OPTIONS requests for CORS preflight
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		// Serve the proxy request
-		proxy.ServeHTTP(w, r)
-	})
-
-	// Wrap the router with CORS and logging handlers
-	loggedRouter := handlers.LoggingHandler(io.Discard, router) // Use io.Discard to disable logging in production
-
-	// Start the server
-	http.ListenAndServe(":8080", loggedRouter)
+	log.Println("Proxy server running on :8080")
+	if err := http.ListenAndServe(":8080", r); err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
 }
