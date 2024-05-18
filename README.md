@@ -10,14 +10,18 @@
 
 Simply prepend your desired URL with `https://api.cors.lol/url=`. 
 
+
 ### Example
 
 If you want to proxy a request to `https://example.com/api/data`, you would use the following URL:
 
 
-https://api.cors.lol/url=https://example.com/api/data
 
-
+````
+```
+[Look! You can see my backticks.](https://api.cors.lol/url=https://example.com/api/data)
+```
+````
 
 ## Features
 
