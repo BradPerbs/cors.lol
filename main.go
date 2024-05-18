@@ -2,97 +2,84 @@ package main
 
 import (
 	"io"
-	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
-	"golang.org/x/time/rate"
+	"github.com/gorilla/mux"
+	"github.com/juju/ratelimit"
 )
 
 const (
-	requestLimit = 10 * 1024 * 1024 // 10 MB
-	rateLimit    = 10               // requests per minute
+	maxRequestSize = 10 << 20 // 10 MB
+	rateLimit      = 5        // requests per minute
 )
 
-// RateLimiter is a wrapper for rate limiting per IP
-type RateLimiter struct {
-	ips map[string]*rate.Limiter
-	r   *rate.Limiter
+var bucket *ratelimit.Bucket
+
+func init() {
+	// Initialize the rate limiter
+	bucket = ratelimit.NewBucket(time.Minute/time.Duration(rateLimit), int64(rateLimit))
 }
 
-func NewRateLimiter(r rate.Limit, b int) *RateLimiter {
-	return &RateLimiter{
-		ips: make(map[string]*rate.Limiter),
-		r:   rate.NewLimiter(r, b),
-	}
+func main() {
+	r := mux.NewRouter()
+	r.HandleFunc("/{url:.*}", proxyHandler)
+	http.Handle("/", r)
+	http.ListenAndServe(":8080", nil)
 }
-
-func (rl *RateLimiter) getLimiter(ip string) *rate.Limiter {
-	if lim, exists := rl.ips[ip]; exists {
-		return lim
-	}
-	lim := rate.NewLimiter(rl.r.Limit(), rl.r.Burst())
-	rl.ips[ip] = lim
-	return lim
-}
-
-var limiter = NewRateLimiter(rate.Every(time.Minute/rateLimit), rateLimit)
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
-	ip := r.RemoteAddr
-	if ipLimiter := limiter.getLimiter(ip); !ipLimiter.Allow() {
+	// Rate limiting
+	if bucket.TakeAvailable(1) == 0 {
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
 
-	targetURL := r.URL.String()[1:] // Remove the leading slash
+	// Check request size
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestSize)
+	defer r.Body.Close()
 
-	// Ensure the target URL is valid
-	parsedURL, err := url.Parse(targetURL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
+	// Get the target URL from the request
+	vars := mux.Vars(r)
+	targetURL := vars["url"]
+	if !strings.HasPrefix(targetURL, "http") {
+		targetURL = "http://" + targetURL
 	}
 
-	req, err := http.NewRequest(r.Method, parsedURL.String(), r.Body)
+	// Create the request to the target URL
+	req, err := http.NewRequest(r.Method, targetURL, r.Body)
 	if err != nil {
-		http.Error(w, "Error creating request: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
 
-	req.Header = r.Header
+	// Copy the headers
+	for k, v := range r.Header {
+		req.Header[k] = v
+	}
 
+	// Perform the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		http.Error(w, "Error proxying request: "+err.Error(), http.StatusBadGateway)
+		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
 
-	for key, value := range resp.Header {
-		for _, v := range value {
-			w.Header().Add(key, v)
-		}
+	// Copy the response headers and status code
+	for k, v := range resp.Header {
+		w.Header()[k] = v
 	}
+	w.WriteHeader(resp.StatusCode)
 
+	// Add CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	w.WriteHeader(resp.StatusCode)
-	if _, err := io.CopyN(w, resp.Body, requestLimit); err != nil && err != io.EOF {
-		http.Error(w, "Error reading response body: "+err.Error(), http.StatusInternalServerError)
-	}
+	// Copy the response body
+	io.Copy(w, resp.Body)
 }
 
-func main() {
-	http.HandleFunc("/", proxyHandler)
-
-	log.Println("Proxy server running on :3001")
-	if err := http.ListenAndServe(":3001", nil); err != nil {
-		log.Fatalf("Error starting server: %v", err)
-	}
-}
