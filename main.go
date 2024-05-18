@@ -9,9 +9,9 @@ import (
 )
 
 var (
-    // Limit each IP to 100 requests per 30 minutes
-    rateLimit = 2
-    rateLimitDuration = 30 * time.Minute
+    // Limit each IP to 20 requests per 5 minutes
+    rateLimit = 20
+    rateLimitDuration = 5 * time.Minute
     requestCounts = make(map[string]int)
     countsLock = sync.Mutex{}
     // Max allowed size of the request body is 10MB
