@@ -67,28 +67,34 @@ func handler(w http.ResponseWriter, r *http.Request) {
 func limitRate(next http.HandlerFunc) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
         ip := r.RemoteAddr
+
         countsLock.Lock()
+        // Check if IP already exists in map
         count, exists := requestCounts[ip]
-        if !exists || count >= rateLimit {
+        if !exists {
+            // Initialize the count and start a goroutine to reset after duration
             requestCounts[ip] = 1
-            go func() {
+            go func(ip string) {
                 time.Sleep(rateLimitDuration)
                 countsLock.Lock()
                 delete(requestCounts, ip)
                 countsLock.Unlock()
-            }()
+            }(ip)
         } else {
+            if count >= rateLimit {
+                countsLock.Unlock()
+                http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+                return
+            }
+            // Increment the count if rate limit not exceeded
             requestCounts[ip]++
         }
         countsLock.Unlock()
-
-        if count >= rateLimit {
-            http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-            return
-        }
+        
         next(w, r)
     }
 }
+
 
 func limitSize(next http.HandlerFunc) http.HandlerFunc {
     return func(w http.ResponseWriter, r *http.Request) {
