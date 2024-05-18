@@ -12,7 +12,7 @@ import (
 
 const (
 	maxRequestSize = 10 << 20 // 10 MB
-	rateLimit      = 5        // requests per minute
+	rateLimit      = 100        // requests per minute
 )
 
 var bucket *ratelimit.Bucket
