@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -12,7 +13,7 @@ import (
 
 const (
 	maxRequestSize = 10 << 20 // 10 MB
-	rateLimit      = 100        // requests per minute
+	rateLimit      = 100      // requests per minute
 )
 
 var bucket *ratelimit.Bucket
@@ -26,6 +27,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/{url:.*}", proxyHandler)
 	http.Handle("/", r)
+	log.Println("Proxy server is running on port 3001")
 	http.ListenAndServe(":3001", nil)
 }
 
@@ -43,13 +45,16 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	// Get the target URL from the request
 	vars := mux.Vars(r)
 	targetURL := vars["url"]
-	if !strings.HasPrefix(targetURL, "http") {
+	if !strings.HasPrefix(targetURL, "http://") && !strings.HasPrefix(targetURL, "https://") {
 		targetURL = "http://" + targetURL
 	}
+
+	log.Printf("Proxying request to: %s", targetURL)
 
 	// Create the request to the target URL
 	req, err := http.NewRequest(r.Method, targetURL, r.Body)
 	if err != nil {
+		log.Printf("Error creating request: %v", err)
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
@@ -63,6 +68,7 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("Error performing request: %v", err)
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
