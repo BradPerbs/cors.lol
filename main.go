@@ -1,88 +1,53 @@
-package pancors
+package main
 
 import (
-	"log"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
+    "io"
+    "log"
+    "net/http"
 )
 
-type corsTransport struct {
-	referer     string
-	origin      string
-	credentials string
+func main() {
+    http.HandleFunc("/", handler)
+    log.Println("Starting server on :8080")
+    log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func (t corsTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	// Put in the Referer if specified
-	if t.referer != "" {
-		r.Header.Add("Referer", t.referer)
-	}
+func handler(w http.ResponseWriter, r *http.Request) {
+    // Read the 'url' query parameter
+    url := r.URL.Query().Get("url")
+    if url == "" {
+        http.Error(w, "URL is required", http.StatusBadRequest)
+        return
+    }
 
-	// Do the actual request
-	res, err := http.DefaultTransport.RoundTrip(r)
-	if err != nil {
-		return nil, err
-	}
+    // Set CORS headers
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+    w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-	res.Header.Set("Access-Control-Allow-Origin", t.origin)
-	res.Header.Set("Access-Control-Allow-Credentials", t.credentials)
+    // Handle OPTIONS method for preflight requests
+    if r.Method == "OPTIONS" {
+        w.WriteHeader(http.StatusOK)
+        return
+    }
 
-	return res, nil
+    // Proxy the request
+    resp, err := http.Get(url)
+    if err != nil {
+        http.Error(w, "Failed to fetch URL", http.StatusInternalServerError)
+        return
+    }
+    defer resp.Body.Close()
+
+    // Copy headers
+    for key, values := range resp.Header {
+        for _, value := range values {
+            w.Header().Add(key, value)
+        }
+    }
+
+    // Write the status code and response body
+    w.WriteHeader(resp.StatusCode)
+    io.Copy(w, resp.Body)
 }
 
-func handleProxy(w http.ResponseWriter, r *http.Request, origin string, credentials string) {
-	// Check for the User-Agent header
-	if r.Header.Get("User-Agent") == "" {
-		http.Error(w, "Missing User-Agent header", http.StatusBadRequest)
-		return
-	}
-
-	// Get the optional Referer header
-	referer := r.URL.Query().Get("referer")
-	if referer == "" {
-		referer = r.Header.Get("Referer")
-	}
-
-	// Get the URL
-	urlParam := r.URL.Query().Get("url")
-	// Validate the URL
-	urlParsed, err := url.Parse(urlParam)
-	if err != nil {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-	// Check if HTTP(S)
-	if urlParsed.Scheme != "http" && urlParsed.Scheme != "https" {
-		http.Error(w, "The URL scheme is neither HTTP nor HTTPS", http.StatusBadRequest)
-		return
-	}
-
-	// Setup for the proxy
-	proxy := httputil.ReverseProxy{
-		Director: func(r *http.Request) {
-			r.URL = urlParsed
-			r.Host = urlParsed.Host
-		},
-		Transport: corsTransport{referer, origin, credentials},
-	}
-
-	// Execute the request
-	proxy.ServeHTTP(w, r)
-}
-
-// HandleProxy is a handler which passes requests to the host and returns their
-// responses with CORS headers
-func HandleProxy(w http.ResponseWriter, r *http.Request) {
-	handleProxy(w, r, "*", "true")
-}
-
-// HandleProxyFromHosts is a handler which passes requests only from specified to the host
-func HandleProxyWith(origin string, credentials string) func(http.ResponseWriter, *http.Request) {
-	if !(credentials == "true" || credentials == "false") {
-		log.Panicln("Access-Control-Allow-Credentials can only be 'true' or 'false'")
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		handleProxy(w, r, origin, credentials)
-	}
-}
