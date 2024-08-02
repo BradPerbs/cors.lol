@@ -41,6 +41,11 @@ https://api.cors.lol/url=https://example.com/api/data
 
 We welcome contributions! Please open an issue or submit a pull request with your enhancements.
 
+## Sponsors
+
+[![Cloudblast Logo](https://cloudblast.io/img/logo-icon.193cf13e.svg)](https://cloudblast.io)
+
+
 ## License
 
 This project is licensed under the MIT License.
