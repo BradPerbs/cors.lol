@@ -43,7 +43,7 @@ We welcome contributions! Please open an issue or submit a pull request with you
 
 ## Sponsors
 
-[![Cloudblast Logo](https://cloudblast.io/img/logo-icon.193cf13e.svg)](https://cloudblast.io)
+[![Cloudblast.io - Cloud VM Hosting](https://cloudblast.io/img/logo-icon.193cf13e.svg)](https://cloudblast.io)
 
 
 ## License
