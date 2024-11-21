@@ -10,7 +10,7 @@
 
 ## How to Use
 
-Simply prepend your desired URL with `https://api.cors.lol/url=`. 
+Simply prepend your desired URL with `https://api.cors.lol/?url=`. 
 
 
 ### Example
@@ -21,7 +21,7 @@ If you want to proxy a request to `https://example.com/api/data`, you would use 
 
 ````
 
-https://api.cors.lol/url=https://example.com/api/data
+https://api.cors.lol/?url=https://example.com/api/data
 
 ````
 
