@@ -50,8 +50,8 @@ func main() {
 	http.HandleFunc("/", limitRate(limitSize(handler)))
 
 	// Start server
-	log.Println("Starting server on :3001")
-	log.Fatal(http.ListenAndServe(":3001", nil))
+	log.Println("Starting server on :3047")
+	log.Fatal(http.ListenAndServe(":3047", nil))
 }
 
 func prepareURL(rawURL string) (string, error) {
