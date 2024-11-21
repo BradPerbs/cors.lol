@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
+	"path"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -29,13 +32,135 @@ var (
 			ResponseHeaderTimeout: 10 * time.Second,
 		},
 	}
+	// URL patterns to rewrite
+	urlPattern = regexp.MustCompile(`(src|href|url|srcset)=["']?([^"'\s>]+)["']?`)
+	cssPattern = regexp.MustCompile(`url\(['"]?([^'")]+)['"]?\)`)
 )
+
+func init() {
+	// Register additional MIME types
+	mime.AddExtensionType(".js", "application/javascript")
+	mime.AddExtensionType(".mjs", "application/javascript")
+	mime.AddExtensionType(".css", "text/css")
+	mime.AddExtensionType(".json", "application/json")
+	mime.AddExtensionType(".woff", "font/woff")
+	mime.AddExtensionType(".woff2", "font/woff2")
+	mime.AddExtensionType(".ttf", "font/ttf")
+	mime.AddExtensionType(".eot", "application/vnd.ms-fontobject")
+	mime.AddExtensionType(".svg", "image/svg+xml")
+	mime.AddExtensionType(".ico", "image/x-icon")
+}
 
 func main() {
 	http.HandleFunc("/", limitRate(limitSize(handler)))
 
 	log.Println("Starting server on :3001")
 	log.Fatal(http.ListenAndServe(":3001", nil))
+}
+
+func resolveURL(baseURL *url.URL, ref string) string {
+	// Skip data URLs and anchors
+	if strings.HasPrefix(ref, "data:") || strings.HasPrefix(ref, "#") {
+		return ref
+	}
+
+	// Handle protocol-relative URLs
+	if strings.HasPrefix(ref, "//") {
+		return baseURL.Scheme + ":" + ref
+	}
+
+	// Parse the reference URL
+	refURL, err := url.Parse(ref)
+	if err != nil {
+		return ref
+	}
+
+	// If it's already absolute, return it
+	if refURL.IsAbs() {
+		return ref
+	}
+
+	// Resolve relative to base URL
+	return baseURL.ResolveReference(refURL).String()
+}
+
+func rewriteURLs(content []byte, baseURL *url.URL, proxyURL string) []byte {
+	// Rewrite HTML/CSS attribute URLs
+	content = urlPattern.ReplaceAllFunc(content, func(match []byte) []byte {
+		parts := urlPattern.FindSubmatch(match)
+		if len(parts) != 3 {
+			return match
+		}
+
+		attr := string(parts[1])
+		urlStr := string(parts[2])
+
+		// Skip data URLs and anchors
+		if strings.HasPrefix(urlStr, "data:") || strings.HasPrefix(urlStr, "#") {
+			return match
+		}
+
+		resolvedURL := resolveURL(baseURL, urlStr)
+		return []byte(fmt.Sprintf(`%s="%s?url=%s"`, attr, proxyURL, url.QueryEscape(resolvedURL)))
+	})
+
+	// Rewrite CSS url() references
+	content = cssPattern.ReplaceAllFunc(content, func(match []byte) []byte {
+		parts := cssPattern.FindSubmatch(match)
+		if len(parts) != 2 {
+			return match
+		}
+
+		urlStr := string(parts[1])
+		urlStr = strings.TrimSpace(urlStr)
+		urlStr = strings.Trim(urlStr, `'"`)
+
+		// Skip data URLs
+		if strings.HasPrefix(urlStr, "data:") {
+			return match
+		}
+
+		resolvedURL := resolveURL(baseURL, urlStr)
+		return []byte(fmt.Sprintf(`url("%s?url=%s")`, proxyURL, url.QueryEscape(resolvedURL)))
+	})
+
+	return content
+}
+
+func detectContentType(filename string, content []byte) string {
+	// First try by file extension
+	ext := strings.ToLower(path.Ext(filename))
+	if ext != "" {
+		switch ext {
+		case ".js", ".mjs":
+			return "application/javascript"
+		case ".css":
+			return "text/css"
+		case ".json":
+			return "application/json"
+		case ".svg":
+			return "image/svg+xml"
+		case ".woff":
+			return "font/woff"
+		case ".woff2":
+			return "font/woff2"
+		case ".ttf":
+			return "font/ttf"
+		case ".eot":
+			return "application/vnd.ms-fontobject"
+		}
+
+		if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+			return mimeType
+		}
+	}
+
+	// Then try by content sniffing
+	if len(content) > 0 {
+		return http.DetectContentType(content)
+	}
+
+	return "application/octet-stream"
 }
 
 func prepareURL(rawURL string) (string, error) {
@@ -69,16 +194,11 @@ func prepareURL(rawURL string) (string, error) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	// Set security headers
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Header().Set("X-Frame-Options", "DENY")
-	w.Header().Set("X-XSS-Protection", "1; mode=block")
-	w.Header().Set("Referrer-Policy", "no-referrer")
-
-	// Set CORS headers
+	// Set CORS headers first
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "*")
 
 	// Handle OPTIONS method for preflight requests
 	if r.Method == "OPTIONS" {
@@ -88,8 +208,6 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	// Get URL from query parameter
 	targetURL := r.URL.Query().Get("url")
-	log.Printf("Raw URL from query: %s", targetURL)
-
 	if targetURL == "" {
 		http.Error(w, "URL is required. Use format: /?url=https://example.com", http.StatusBadRequest)
 		return
@@ -102,20 +220,40 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Prepared URL to fetch: %s", preparedURL)
+	log.Printf("Proxying request to: %s", preparedURL)
+
+	// Parse the base URL for resolving relative paths
+	baseURL, err := url.Parse(preparedURL)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Invalid URL: %v", err), http.StatusBadRequest)
+		return
+	}
 
 	// Create a new request
-	req, err := http.NewRequestWithContext(r.Context(), "GET", preparedURL, nil)
+	req, err := http.NewRequestWithContext(r.Context(), r.Method, preparedURL, r.Body)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to create request: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Set common headers
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Connection", "keep-alive")
+	// Copy headers from the original request
+	for key, values := range r.Header {
+		// Skip certain headers
+		if strings.ToLower(key) == "host" || strings.ToLower(key) == "origin" {
+			continue
+		}
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
+	// Set some default headers if not present
+	if req.Header.Get("User-Agent") == "" {
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+	}
+	if req.Header.Get("Accept") == "" {
+		req.Header.Set("Accept", "*/*")
+	}
 
 	// Make the request
 	resp, err := client.Do(req)
@@ -132,32 +270,51 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	log.Printf("Successfully fetched URL %s with status code %d", preparedURL, resp.StatusCode)
-
-	// Copy important headers from the response
-	contentType := resp.Header.Get("Content-Type")
-	if contentType != "" {
-		w.Header().Set("Content-Type", contentType)
+	// Read the response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to read response: %v", err), http.StatusInternalServerError)
+		return
 	}
 
-	// Copy other relevant headers
-	for _, header := range []string{"Cache-Control", "Expires", "Last-Modified", "ETag"} {
-		if value := resp.Header.Get(header); value != "" {
-			w.Header().Set(header, value)
+	// Detect content type
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = detectContentType(preparedURL, body)
+	}
+	w.Header().Set("Content-Type", contentType)
+
+	// Rewrite URLs in HTML and CSS content
+	if strings.Contains(contentType, "text/html") || strings.Contains(contentType, "text/css") {
+		proxyBaseURL := fmt.Sprintf("http://%s", r.Host)
+		body = rewriteURLs(body, baseURL, proxyBaseURL)
+	}
+
+	// Copy other headers from the response
+	for key, values := range resp.Header {
+		if key != "Content-Type" && key != "Content-Length" { // Skip these as we handle them separately
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
 		}
 	}
+
+	// Ensure CORS headers are set after copying response headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Expose-Headers", "*")
 
 	// Write the status code
 	w.WriteHeader(resp.StatusCode)
 
-	// Copy the response body
-	written, err := io.Copy(w, resp.Body)
-	if err != nil {
-		log.Printf("Error copying response body after %d bytes: %v", written, err)
+	// Write the body
+	if _, err := w.Write(body); err != nil {
+		log.Printf("Error writing response: %v", err)
 		return
 	}
 
-	log.Printf("Successfully copied %d bytes from %s", written, preparedURL)
+	log.Printf("Successfully proxied %d bytes from %s with content type %s", len(body), preparedURL, contentType)
 }
 
 func limitRate(next http.HandlerFunc) http.HandlerFunc {
